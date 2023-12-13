@@ -1,122 +1,136 @@
 #include <iostream>
-#include <string>
-#include "TicTacToe.h"
+#include "tictactoe.hpp"
+#include "ai.hpp"
 using namespace std;
 
-void TicTacToe::initGameBoard() {
-	if (gameBoard != nullptr) {
-		delete gameBoard;
-		gameBoard = nullptr;
-	}
-	gameBoard = new int* [3];
-	gameBoard[0] = new int[3] {0, 0, 0};
-	gameBoard[1] = new int[3] {0, 0, 0};
-	gameBoard[2] = new int[3] {0, 0, 0};
+Ai ai{};
+Tictactoe::Tictactoe() : turn(1), gameBoard(new int* [3]) {}
+
+void Tictactoe::initGameBoard() {
+    for (int i = 0; i < 3; i++) {
+        gameBoard[i] = new int[3];
+        gameBoard[i][0] = 0;
+        gameBoard[i][1] = 0;
+        gameBoard[i][2] = 0;
+    }
 }
 
-void TicTacToe::doTicTacToe() {
-	while (true) {
-		int* pos = getPos();
-		if (!canMove(pos)) {
-			cout << "You can't place there" << endl;
-			continue;
-		}
-		playerTurn(pos);
-		printGameBoard();
-		break;
-	}
+void Tictactoe::doTictactoe() {
+    cout << "Hello!" << endl;
+    this->initGameBoard();
+    int winner = 0;
+    while (true) {
+        printBoard(gameBoard);
+        int* pos = nullptr;
+        if (turn == 1) {
+            pos = getPos();
+            if (!canMove(pos)) {
+                cout << "Invalid position" << endl;
+                continue;
+            }
+        } else if (turn == -1) {
+            int** copiedGameBoard = copyBoard();
+            pos = ai.getBestMove(copiedGameBoard);
+        }
+        placePiece(pos);
+        if (checkWinner(gameBoard, turn)) {
+            printWinnerFlag();
+            break;
+        }
+        if (isGameEnd(gameBoard)) {
+            printDrawFlag();
+            break;
+        }
+        changeTurn();
+    }
+    printBoard(gameBoard);
 }
 
-int* TicTacToe::getPos() {
-	while (true) {
-		int input = 0;
-		try {
-			cout << "Select position [1-9] > ";
-			cin >> input;
-			if (input < 1 || input > 9) throw "Wrong Number";
-			cin.ignore();
-			return changeToCoordinate(input);
-		}
-		catch (const char* s) {
-			cout << s << endl;
-			input = 0;
-		}
-		catch (...) {
-			input = 0;
-		}
-	}
+int* Tictactoe::getPos() {
+    int input = 0;
+    while (true) {
+        cout << "Enter a position > ";
+        cin >> input;
+        if (input >= 1 && input <= 9) break;
+        else cout << "Invalid input" << endl;
+    }
+    return changeToCoordinate(input);
+}
+int* Tictactoe::changeToCoordinate(int pos) {
+    int* coordinate = new int[2];
+    switch (pos) {
+    case 1: coordinate[0] = 0; coordinate[1] = 0; break;
+    case 2: coordinate[0] = 0; coordinate[1] = 1; break;
+    case 3: coordinate[0] = 0; coordinate[1] = 2; break;
+    case 4: coordinate[0] = 1; coordinate[1] = 0; break;
+    case 5: coordinate[0] = 1; coordinate[1] = 1; break;
+    case 6: coordinate[0] = 1; coordinate[1] = 2; break;
+    case 7: coordinate[0] = 2; coordinate[1] = 0; break;
+    case 8: coordinate[0] = 2; coordinate[1] = 1; break;
+    case 9: coordinate[0] = 2; coordinate[1] = 2; break;
+    }
+    return coordinate;
+}
+void Tictactoe::placePiece(int* pos) {
+    gameBoard[pos[0]][pos[1]] = turn;
+}
+bool Tictactoe::canMove(int* pos) {
+    return gameBoard[pos[0]][pos[1]] == 0;
 }
 
-int* TicTacToe::changeToCoordinate(int pos) {
-	int* posArr = new int[2] {0, 0};
-	switch (pos) {
-	case 1:
-		posArr[0] = 0;
-		posArr[1] = 0;
-		break;
-	case 2:
-		posArr[0] = 0;
-		posArr[1] = 1;
-		break;
-	case 3:
-		posArr[0] = 0;
-		posArr[1] = 2;
-		break;
-	case 4:
-		posArr[0] = 1;
-		posArr[1] = 0;
-		break;
-	case 5:
-		posArr[0] = 1;
-		posArr[1] = 1;
-		break;
-	case 6:
-		posArr[0] = 1;
-		posArr[1] = 2;
-		break;
-	case 7:
-		posArr[0] = 2;
-		posArr[1] = 0;
-		break;
-	case 8:
-		posArr[0] = 2;
-		posArr[1] = 1;
-		break;
-	case 9:
-		posArr[0] = 2;
-		posArr[1] = 2;
-		break;
-	}
-	return posArr;
+bool Tictactoe::isGameEnd(int** gameBoard) {
+    for (int i = 0; i < 3; i++) {
+        for (int j = 0; j < 3; j++) {
+            if (gameBoard[i][j] == 0) return false;
+        }
+    }
+    return true;
 }
 
-void TicTacToe::playerTurn(int* pos) {
-	gameBoard[pos[0]][pos[1]] = 1;
+bool Tictactoe::checkWinner(int** gameBoard, int turn) {
+    if (gameBoard[0][0] == turn && gameBoard[0][1] == turn && gameBoard[0][2] == turn) return true;
+    if (gameBoard[1][0] == turn && gameBoard[1][1] == turn && gameBoard[1][2] == turn) return true;
+    if (gameBoard[2][0] == turn && gameBoard[2][1] == turn && gameBoard[2][2] == turn) return true;
+    if (gameBoard[0][0] == turn && gameBoard[1][0] == turn && gameBoard[2][0] == turn) return true;
+    if (gameBoard[0][1] == turn && gameBoard[1][1] == turn && gameBoard[2][1] == turn) return true;
+    if (gameBoard[0][2] == turn && gameBoard[1][2] == turn && gameBoard[2][2] == turn) return true;
+    if (gameBoard[0][0] == turn && gameBoard[1][1] == turn && gameBoard[2][2] == turn) return true;
+    if (gameBoard[0][2] == turn && gameBoard[1][1] == turn && gameBoard[2][0] == turn) return true;
+    return false;
+}
+void Tictactoe::printBoard(int** gameBoard) {
+    for (int i = 0; i < 3; i++) {
+        if (i > 0) cout << "式托式托式" << endl;
+        for (int j = 0; j < 3; j++) {
+            if (j > 0) cout << "弛";
+            if (gameBoard[i][j] == 1) cout << "O";
+            else if (gameBoard[i][j] == -1) cout << "X";
+            else cout << " ";
+        }
+        cout << endl;
+    }
 }
 
-void TicTacToe::cpuTurn() {
-
+void Tictactoe::printWinnerFlag() {
+    if (turn == 1) cout << "Player Wins!" << endl;
+    else if (turn == -1) cout << "CPU Wins!" << endl;
 }
 
-void TicTacToe::printGameBoard() {
-	for (int i = 0; i < 3; i++) {
-		if (i > 0) cout << "式托式托式" << endl;
-		for (int j = 0; j < 3; j++) {
-			if (j > 0) cout << "弛";
-			cout << gameBoard[i][j];
-		}
-		cout << endl;
-	}
+void Tictactoe::printDrawFlag() {
+    cout << "Draw!" << endl;
 }
 
-bool TicTacToe::canMove(int* pos) {
-	return gameBoard[pos[0]][pos[1]] == 0;
+void Tictactoe::changeTurn() {
+    turn *= -1;
 }
 
-int TicTacToe::checkWinner() {
-	return 0;
-}
-
-bool TicTacToe::isEnd() {
-	return true;
+int** Tictactoe::copyBoard() {
+    int** copiedGameBoard = new int* [3];
+    for (int i = 0; i < 3; i++) {
+        copiedGameBoard[i] = new int[3];
+        for (int j = 0; j < 3; j++) {
+            copiedGameBoard[i][j] = gameBoard[i][j];
+        }
+    }
+    return copiedGameBoard;
 }
